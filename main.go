@@ -13,32 +13,36 @@ func crawlData(url string, channel chan string) {
 	channel <- "Data get from " + url
 }
 
+func runProcess(tasks chan string, responses chan string) {
+	for value := range tasks {
+		crawlData(value, responses)
+	}
+}
+
 func limitCrawl(limit int, listUrl []string) {
 	lengthUrl := len(listUrl)
 	if limit > lengthUrl {
 		limit = lengthUrl
 	}
-	channel := make(chan string, limit)
-	index := 0
-	for ; index < limit; index++ {
-		go crawlData(listUrl[index], channel)
+	tasks := make(chan string, lengthUrl)
+	responses := make(chan string, lengthUrl)
+
+	for _, url := range listUrl {
+		tasks <- url
+	}
+
+	for i := 0; i < limit; i++ {
+		go runProcess(tasks, responses)
 	}
 
 	for i := 0; i < lengthUrl; i++ {
-		select {
-		case response := <-channel:
-			fmt.Println(response)
-			if index < lengthUrl {
-				go crawlData(listUrl[index], channel)
-				index++
-			}
-		}
+		fmt.Println(<-responses)
 	}
 }
 
 func main() {
 	listUrl := []string{
-		"goolge.com",
+		"google.com",
 		"facebook.com",
 		"reddit.com",
 		"slack.com",
